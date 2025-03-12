@@ -2,6 +2,11 @@ import { Webhook } from "svix";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+interface EmailAddress {
+  id: string;
+  email_address: string;
+}
+
 export async function POST(req: Request) {
   // Get the headers
   const svix_id = req.headers.get("svix-id");
@@ -55,7 +60,7 @@ export async function POST(req: Request) {
     
     // Get primary email
     const primaryEmail = email_addresses?.find(
-      (email: any) => email.id === primary_email_address_id
+      (email: EmailAddress) => email.id === primary_email_address_id
     )?.email_address;
 
     if (!primaryEmail) {

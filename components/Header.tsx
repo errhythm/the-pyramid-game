@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
 import { Home, History, Sparkles } from "lucide-react";
 
 export function Header() {

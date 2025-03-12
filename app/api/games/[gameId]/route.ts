@@ -1,11 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
 export async function GET(
-  req: Request,
-  context: { params: { gameId: string } }
+  req: NextRequest
 ) {
+  const { searchParams } = new URL(req.url);
+  const gameId = searchParams.get('gameId');
+
   try {
     const { userId } = await auth();
     
@@ -13,11 +15,9 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const { gameId } = await Promise.resolve(context.params);
-    
     // Check if the game exists
     const game = await prisma.game.findUnique({
-      where: { id: gameId },
+      where: { id: gameId as string },
       include: {
         host: {
           select: {

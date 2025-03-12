@@ -10,6 +10,14 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Plus, LogIn } from "lucide-react";
 
+interface Game {
+  id: string;
+  code: string;
+  title: string;
+  timeLimit: number;
+  status: "WAITING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
@@ -78,7 +86,7 @@ export default function HomePage() {
       // Find the game by code to get the game ID
       const gamesResponse = await fetch("/api/games");
       const games = await gamesResponse.json();
-      const game = games.find((g: any) => g.code === data.code);
+      const game = games.find((g: Game) => g.code === data.code);
       
       if (!game) {
         throw new Error("Game not found");

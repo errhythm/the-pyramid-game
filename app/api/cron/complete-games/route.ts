@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+type Rank = "A" | "B" | "C" | "D" | "F";
+
 // This endpoint should be called by a cron job every minute
 export async function GET() {
   try {
@@ -79,7 +81,7 @@ export async function GET() {
         
         await prisma.participant.update({
           where: { id: participant.id },
-          data: { rank: rank as any },
+          data: { rank: rank as Rank },
         });
       }
       

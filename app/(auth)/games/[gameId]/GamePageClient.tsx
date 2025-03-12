@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -52,12 +52,10 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   
   const isHost = user?.id === game?.hostId;
-  const isActive = game?.status === "ACTIVE";
-  const isCompleted = game?.status === "COMPLETED";
   const isWaiting = game?.status === "WAITING";
   
   // Fetch game data
-  const fetchGame = async () => {
+  const fetchGame = useCallback(async () => {
     try {
       const response = await fetch(`/api/games/${gameId}`);
       
@@ -82,12 +80,12 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
       if (data.status === "COMPLETED") {
         router.push(`/games/${gameId}/results`);
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to fetch game data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameId, router]);
   
   // Copy game code to clipboard
   const copyGameCode = () => {
@@ -138,7 +136,7 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
         clearInterval(refreshInterval);
       }
     };
-  }, [gameId]);
+  }, [gameId, fetchGame, refreshInterval]);
   
   if (loading) {
     return (
@@ -157,8 +155,8 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
     return (
       <div className="max-w-4xl mx-auto text-center">
         <h1 className="text-2xl font-bold">Game not found</h1>
-        <p className="text-gray-400 mt-2">
-          The game you're looking for doesn't exist or has been removed.
+        <p className="text-gray-400 text-center py-4">
+          The game you&apos;re looking for doesn&apos;t exist or has been removed.
         </p>
         <Button className="mt-4" onClick={() => router.push("/")}>
           Go Home

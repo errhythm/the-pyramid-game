@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Clock, Users, Calendar, ArrowRight } from "lucide-react";
@@ -60,7 +59,7 @@ export default function HistoryPage() {
       
       const data = await response.json();
       setGames(data);
-    } catch (error) {
+    } catch {
       toast.error("Failed to fetch game history");
     } finally {
       setLoading(false);

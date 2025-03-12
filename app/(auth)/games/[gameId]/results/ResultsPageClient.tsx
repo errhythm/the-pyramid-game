@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Trophy, Medal, Clock, Users, Home } from "lucide-react";
+import { Trophy, Medal, Home } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Game {
@@ -49,7 +48,7 @@ export default function ResultsPageClient({ gameId }: { gameId: string }) {
   const [refreshing, setRefreshing] = useState(false);
   
   // Fetch game data
-  const fetchGame = async () => {
+  const fetchGame = useCallback(async () => {
     try {
       const response = await fetch(`/api/games/${gameId}`);
       
@@ -75,13 +74,13 @@ export default function ResultsPageClient({ gameId }: { gameId: string }) {
         router.push(`/games/${gameId}/vote`);
         return;
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to fetch game data");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [gameId, router]);
   
   // Function to handle manual refresh
   const handleRefresh = async () => {
@@ -91,7 +90,7 @@ export default function ResultsPageClient({ gameId }: { gameId: string }) {
   
   useEffect(() => {
     fetchGame();
-  }, [gameId]);
+  }, [gameId, fetchGame]);
   
   // Group participants by rank
   const participantsByRank = {
@@ -123,7 +122,7 @@ export default function ResultsPageClient({ gameId }: { gameId: string }) {
       <div className="max-w-4xl mx-auto text-center">
         <h1 className="text-2xl font-bold">Game not found</h1>
         <p className="text-gray-400 mt-2">
-          The game you're looking for doesn't exist or has been removed.
+          The game you&apos;re looking for doesn&apos;t exist or has been removed.
         </p>
         <Button className="mt-4" onClick={() => router.push("/")}>
           Go Home

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,14 +80,14 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
       setTimeout(() => {
         router.push(`/games/${gameId}/results`);
       }, 1500);
-    } catch (error) {
+    } catch {
       toast.error("Failed to complete game");
       setCheckingResults(false);
     }
   };
   
   // Fetch game data
-  const fetchGame = async () => {
+  const fetchGame = useCallback(async () => {
     try {
       const response = await fetch(`/api/games/${gameId}`);
       
@@ -131,7 +131,7 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
         
         if (diff <= 0) {
           // Game has ended
-          toast.info("Time's up! Redirecting to results...");
+          toast.info("Time&apos;s up! Redirecting to results...");
           setTimeout(() => {
             router.push(`/games/${gameId}/results`);
           }, 2000);
@@ -142,12 +142,12 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
           setTimeLeft(`${minutes}:${seconds.toString().padStart(2, "0")}`);
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to fetch game data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameId, router, user?.id]);
   
   // Toggle participant selection
   const toggleParticipant = (userId: string) => {
@@ -190,8 +190,8 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
       
       toast.success("Votes submitted successfully!");
       fetchGame(); // Refresh game data
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to submit votes");
+    } catch {
+      toast.error("Failed to submit votes");
     } finally {
       setSubmitting(false);
     }
@@ -209,7 +209,7 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
         clearInterval(refreshInterval);
       }
     };
-  }, [gameId]);
+  }, [gameId, fetchGame, refreshInterval]);
   
   // Check if the current user has already voted
   const currentParticipant = game?.participants.find(
@@ -234,7 +234,7 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
       <div className="max-w-4xl mx-auto text-center">
         <h1 className="text-2xl font-bold">Game not found</h1>
         <p className="text-gray-400 mt-2">
-          The game you're looking for doesn't exist or has been removed.
+          The game you&apos;re looking for doesn&apos;t exist or has been removed.
         </p>
         <Button className="mt-4" onClick={() => router.push("/")}>
           Go Home
@@ -270,7 +270,7 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
             <li>You cannot vote for yourself</li>
             <li>You cannot vote for the same person twice</li>
             <li>Your votes will determine the final rankings</li>
-            <li>If you don't vote before the time limit, you'll receive an F rank</li>
+            <li>If you don&apos;t vote before the time limit, you&apos;ll receive an F rank</li>
             <li>Once you submit your votes, you cannot change them</li>
           </ul>
         </CardContent>
@@ -357,6 +357,9 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
           </CardFooter>
         )}
       </Card>
+      <p className="text-gray-400 mt-2">
+        Don&apos;t see someone you want to vote for? They haven&apos;t joined the game yet.
+      </p>
     </div>
   );
 } 
