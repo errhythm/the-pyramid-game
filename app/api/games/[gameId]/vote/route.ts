@@ -78,15 +78,26 @@ export async function POST(
         continue; // Skip if vote already exists
       }
 
-      await prisma.vote.create({
-        data: {
-          gameId: params.gameId,
-          fromUserId: userId,
-          toUserId: vote.toUserId,
-          fromParticipantId: participant.id,
-          toParticipantId: toParticipant.id
-        },
-      });
+      // Create vote and increment vote count in a transaction
+      await prisma.$transaction([
+        prisma.vote.create({
+          data: {
+            gameId: params.gameId,
+            fromUserId: userId,
+            toUserId: vote.toUserId,
+            fromParticipantId: participant.id,
+            toParticipantId: toParticipant.id
+          },
+        }),
+        prisma.participant.update({
+          where: { id: toParticipant.id },
+          data: {
+            voteCount: {
+              increment: 1
+            }
+          }
+        })
+      ]);
     }
 
     // Update participant status to VOTED

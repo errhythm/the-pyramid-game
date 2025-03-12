@@ -17,7 +17,7 @@ export default async function AuthPagesLayout({
   return (
     <div className="flex min-h-screen flex-col bg-[#0A0A0F] relative overflow-hidden">
       {/* Noise texture overlay */}
-      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] pointer-events-none z-0 mix-blend-overlay"></div>
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0 mix-blend-overlay"></div>
       
       {/* Background gradient mesh */}
       <div className="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent"></div>

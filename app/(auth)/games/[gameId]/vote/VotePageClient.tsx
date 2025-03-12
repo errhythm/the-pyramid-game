@@ -197,6 +197,31 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
     }
   };
   
+  // Skip voting (abstain)
+  const skipVoting = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/games/${gameId}/vote/skip`, {
+        method: "POST",
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to skip voting");
+      }
+      
+      toast.success("Skipped voting successfully!");
+      // Update the game data to reflect the new state
+      const updatedGame = await fetch(`/api/games/${gameId}`).then(res => res.json());
+      setGame(updatedGame);
+    } catch {
+      toast.error("Failed to skip voting");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
   // Set up polling for game updates
   useEffect(() => {
     fetchGame();
@@ -213,7 +238,7 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
   const currentParticipant = game?.participants.find(
     (p) => p.userId === user?.id
   );
-  const hasVoted = currentParticipant?.status === "VOTED";
+  const hasVoted = currentParticipant?.status === "VOTED" || currentParticipant?.status === "ABSTAINED";
   
   if (loading) {
     return (
@@ -292,15 +317,17 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
               <p className="text-gray-400 mb-6">
                 {allParticipantsVoted 
                   ? "All participants have completed voting!"
-                  : "You have already cast your votes. Waiting for others to complete voting."}
+                  : game.hostId === user?.id
+                    ? "Not all participants have voted yet. You can end the game early to mark remaining participants as abstained."
+                    : "You have already cast your votes. Waiting for others to complete voting."}
               </p>
-              {allParticipantsVoted && (
+              {(allParticipantsVoted || game.hostId === user?.id) && game.hostId === user?.id && (
                 <Button
                   onClick={completeGame}
                   disabled={checkingResults}
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-[0_4px_10px_rgba(16,185,129,0.3)]"
                 >
-                  {checkingResults ? "Checking Results..." : "View Results"}
+                  {checkingResults ? "Checking Results..." : allParticipantsVoted ? "End Game & View Results" : "End Game Early"}
                 </Button>
               )}
             </div>
@@ -337,23 +364,33 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
                     )}
                   </div>
                 ))}
+              <CardFooter className="flex justify-between items-center gap-4">
+                <div className="text-sm text-gray-400">
+                  Selected: {selectedParticipants.length}/{calculateMaxVotes(game?.participants.length || 0)}
+                </div>
+                <div className="flex gap-4">
+                  {calculateMaxVotes(game?.participants.length || 0) === 1 && (
+                    <Button
+                      onClick={skipVoting}
+                      disabled={submitting}
+                      variant="outline"
+                      className="border-gray-800 hover:bg-gray-800/50 transition-all duration-300"
+                    >
+                      Skip Voting
+                    </Button>
+                  )}
+                  <Button
+                    onClick={submitVotes}
+                    disabled={submitting || selectedParticipants.length === 0}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-[0_4px_10px_rgba(124,58,237,0.3)]"
+                  >
+                    {submitting ? "Submitting..." : "Submit Votes"}
+                  </Button>
+                </div>
+              </CardFooter>
             </div>
           )}
         </CardContent>
-        {!hasVoted && (
-          <CardFooter className="flex justify-between">
-            <div className="text-sm text-gray-400">
-              Selected: {selectedParticipants.length}/{calculateMaxVotes(game?.participants.length || 0)}
-            </div>
-            <Button
-              onClick={submitVotes}
-              disabled={submitting || selectedParticipants.length === 0}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-[0_4px_10px_rgba(124,58,237,0.3)]"
-            >
-              {submitting ? "Submitting..." : "Submit Votes"}
-            </Button>
-          </CardFooter>
-        )}
       </Card>
       <p className="text-gray-400 mt-2">
         Don&apos;t see someone you want to vote for? They haven&apos;t joined the game yet.
