@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model (linked to Clerk)
+model User {
+  id            String        @id
+  email         String        @unique
+  name          String
+  imageUrl      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  hostedGames   Game[]        @relation("GameHost")
+  participantIn Participant[]
+  votesGiven    Vote[]        @relation("VoteFrom")
+  votesReceived Vote[]        @relation("VoteTo")
+}
+
+// Game model
+model Game {
+  id           String        @id @default(cuid())
+  code         String        @unique // 6-digit code for joining
+  title        String
+  status       GameStatus    @default(WAITING)
+  timeLimit    Int           @default(30) // Time limit in minutes
+  startTime    DateTime?
+  endTime      DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  hostId       String
+  host         User          @relation("GameHost", fields: [hostId], references: [id])
+  participants Participant[]
+  votes        Vote[]
+
+  @@index([code])
+}
+
+// Participant model
+model Participant {
+  id        String          @id @default(cuid())
+  userId    String
+  gameId    String
+  joinedAt  DateTime        @default(now())
+  status    ParticipantStatus @default(JOINED)
+  rank      Rank?
+  voteCount Int             @default(0)
+  user      User            @relation(fields: [userId], references: [id])
+  game      Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  votesFrom Vote[]          @relation("VoteTo")
+  votesTo   Vote[]          @relation("VoteFrom")
+
+  @@unique([userId, gameId])
+  @@index([gameId])
+  @@index([userId])
+}
+
+// Vote model
+model Vote {
+  id           String      @id @default(cuid())
+  gameId       String
+  fromUserId   String
+  toUserId     String
+  fromParticipantId String
+  toParticipantId   String
+  createdAt    DateTime    @default(now())
+  game         Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  fromUser     User        @relation("VoteFrom", fields: [fromUserId], references: [id])
+  toUser       User        @relation("VoteTo", fields: [toUserId], references: [id])
+  fromParticipant Participant @relation("VoteFrom", fields: [fromParticipantId], references: [id])
+  toParticipant   Participant @relation("VoteTo", fields: [toParticipantId], references: [id])
+
+  @@unique([gameId, fromParticipantId, toParticipantId])
+  @@index([gameId])
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+// Enums
+enum GameStatus {
+  WAITING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ParticipantStatus {
+  JOINED
+  VOTED
+  ABSTAINED
+}
+
+enum Rank {
+  A
+  B
+  C
+  D
+  F
+}

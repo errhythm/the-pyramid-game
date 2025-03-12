@@ -1,0 +1,66 @@
+---
+description: Description of the project
+globs: 
+alwaysApply: false
+---
+Based on a famous Korean Drama I want to create a web app called Pyramid Game
+
+The Pyramid Game will be of the following rules:
+* Users are given five votes to cast for any five classmates
+* User can not vote the same user twice
+* User can not vote himself
+* The number of votes a student receives determines their rank
+* Users are ranked from A to D
+* Users with the most Rank A votes receive special privileges
+* The user with no votes get F rank
+* There will be a certain time limit set by the host to vote
+* If the user unable to vote within that certain time after joining, he/she will get an F (Abstination)
+* Before you join, you have to accept the rules of the game
+* Once you join, you can not leave. Make sure you tell that to the user at the time of joining
+
+In my platform, you can host a Pyramid game, you have to register and the login. You can also join a pyramid game by the game's secret code. The host can start the game and it will show all who visited to join the game and then allow them to vote. After everyone is done, it will show the results and list of the people joined and how many votes they got.
+
+There are grades A to F, and grades soon become ranks.
+The student who abstains or receives the fewest votes becomes F.
+A is more than 75% votes , it seems that B should receive at least 15% votes and C should receive at least 5% votes.
+
+For authentication, we will use Clerk where there will only be Google and Discord Login only. So that users can login easily and there will be no email password login. We will use Clerk so it will not needed to be handled. 
+
+The site design will be in dark mode. It will be black background. It will be a bit magical type design, use various shades of black and white text for that. The design will be responsive and in mobile the flow will seem like an App.
+
+Tech Stack:
+NextJS (Frontend Backend)
+Prisma Postgres (Database & ORM)
+Clerk (Authentication)
+Shadcn (UI)
+
+User Flow:
+1. User will login via Google
+2. They can host a new Pyramid Game or join a Pyramid Game with a 6 digit code
+3. Users can also join a Pyramid Game by direct link or scanning the QR code which will be shown after hosting the game and going to next page.
+4. After hosting the game, next page will show the list of joined users and the QR code to invite and the option to start the game. 
+5. The host can mention a fixed time to complete the vote within that time. Default time is 30 minutes. 
+6. The users will be able to autocomplete the names of other users as well. 
+7. After the time has been completed the game link will be redirected to the result link and then it will show the result screen which will be like this. 
+
+------------------------------------------
+| A - John Doe
+------------------------------------------
+| B - Sarah Doe
+|   - Prince William
+------------------------------------------
+| C - Vance Luke
+|   - Iron Man
+|   - Thor Luke
+------------------------------------------
+| D - John Dakota
+|   - Garfield Will
+|   - Shahrukh Khan
+------------------------------------------
+| F - Rohit Sharma (In Red Color)
+------------------------------------------
+
+
+8. The result can be seen later from the user with the game history page. It will show current game or ongoing games too. 
+
+Brainstorm more ideas which might be good in this case. 
