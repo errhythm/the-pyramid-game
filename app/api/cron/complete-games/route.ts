@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 type Rank = "A" | "B" | "C" | "D" | "F";
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // This endpoint should be called by a cron job every minute
 export async function GET() {
   try {
@@ -30,7 +34,7 @@ export async function GET() {
     for (const game of expiredGames) {
       // Mark participants who haven't voted as abstained
       const nonVotedParticipants = game.participants.filter(
-        (p: { status: string }) => p.status === "JOINED"
+        (p) => p.status === "JOINED"
       );
       
       for (const participant of nonVotedParticipants) {
@@ -47,7 +51,7 @@ export async function GET() {
       });
       
       const totalVotes = participants.reduce(
-        (sum: number, p: { voteCount: number }) => sum + p.voteCount,
+        (sum, p) => sum + (p.voteCount || 0),
         0
       );
       
@@ -62,7 +66,7 @@ export async function GET() {
       
       // Assign ranks
       for (const participant of participants) {
-        let rank = "F";
+        let rank: Rank = "F";
         
         if (participant.voteCount >= rankThresholds.A) {
           rank = "A";
@@ -81,7 +85,7 @@ export async function GET() {
         
         await prisma.participant.update({
           where: { id: participant.id },
-          data: { rank: rank as Rank },
+          data: { rank },
         });
       }
       
