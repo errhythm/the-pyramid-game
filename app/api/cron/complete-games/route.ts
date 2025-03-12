@@ -8,7 +8,12 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 // This endpoint should be called by a cron job every minute
-export async function GET() {
+export async function GET(req: Request) {
+  // Check for valid authorization
+  if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     // Find active games that have reached their end time
     const now = new Date();
