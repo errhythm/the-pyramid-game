@@ -3,22 +3,28 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
 export async function POST(
-  req: NextRequest
+  req: NextRequest,
+  context: { params: Promise<{ gameId: string }> }
 ) {
-  const { searchParams } = new URL(req.url);
-  const gameId = searchParams.get('gameId');
   const { timeLimit } = await req.json();
 
   try {
-    const { userId } = await auth();
+    const [{ userId }, params] = await Promise.all([
+      auth(),
+      context.params
+    ]);
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (!params.gameId) {
+      return NextResponse.json({ error: "Game ID is required" }, { status: 400 });
+    }
+
     // Check if the game exists
     const game = await prisma.game.findUnique({
-      where: { id: gameId as string },
+      where: { id: params.gameId },
       include: {
         participants: true,
       },
@@ -45,7 +51,7 @@ export async function POST(
 
     // Start the game
     const updatedGame = await prisma.game.update({
-      where: { id: gameId as string },
+      where: { id: params.gameId },
       data: {
         status: "ACTIVE",
         startTime: new Date(),

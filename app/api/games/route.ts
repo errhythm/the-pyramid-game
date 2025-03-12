@@ -154,6 +154,13 @@ export async function POST(req: Request) {
           connect: {
             id: userId
           }
+        },
+        participants: {
+          create: {
+            userId,
+            status: "JOINED",
+            voteCount: 0
+          }
         }
       },
       include: {

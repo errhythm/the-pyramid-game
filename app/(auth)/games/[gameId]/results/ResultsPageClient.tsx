@@ -90,7 +90,7 @@ export default function ResultsPageClient({ gameId }: { gameId: string }) {
   
   useEffect(() => {
     fetchGame();
-  }, [gameId, fetchGame]);
+  }, [gameId]);
   
   // Group participants by rank
   const participantsByRank = {

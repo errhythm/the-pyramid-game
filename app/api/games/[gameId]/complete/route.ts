@@ -5,21 +5,26 @@ import { auth } from "@clerk/nextjs/server";
 type Rank = "A" | "B" | "C" | "D" | "F";
 
 export async function POST(
-  request: NextRequest
+  request: NextRequest,
+  context: { params: Promise<{ gameId: string }> }
 ) {
-  const { searchParams } = new URL(request.url);
-  const gameId = searchParams.get('gameId');
-
   try {
-    const { userId } = await auth();
+    const [{ userId }, params] = await Promise.all([
+      auth(),
+      context.params
+    ]);
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (!params.gameId) {
+      return NextResponse.json({ error: "Game ID is required" }, { status: 400 });
+    }
+
     // Check if the game exists
     const game = await prisma.game.findUnique({
-      where: { id: gameId as string },
+      where: { id: params.gameId },
       include: {
         participants: true,
       },
@@ -41,7 +46,7 @@ export async function POST(
 
     // Mark participants who haven't voted as abstained
     const nonVotedParticipants = game.participants.filter(
-      (p: { status: string }) => p.status === "JOINED"
+      (p) => p.status === "JOINED"
     );
 
     for (const participant of nonVotedParticipants) {
@@ -53,11 +58,11 @@ export async function POST(
 
     // Calculate rankings
     const participants = await prisma.participant.findMany({
-      where: { gameId: gameId as string },
+      where: { gameId: params.gameId },
       orderBy: { voteCount: "desc" },
     });
 
-    const totalVotes = participants.reduce((sum: number, p: { voteCount: number }) => sum + p.voteCount, 0);
+    const totalVotes = participants.reduce((sum, p) => sum + (p.voteCount || 0), 0);
 
     // Calculate thresholds for each rank
     const rankThresholds = {
@@ -70,7 +75,7 @@ export async function POST(
 
     // Assign ranks
     for (const participant of participants) {
-      let rank = "F";
+      let rank: Rank = "F";
 
       if (participant.voteCount >= rankThresholds.A) {
         rank = "A";
@@ -89,13 +94,13 @@ export async function POST(
 
       await prisma.participant.update({
         where: { id: participant.id },
-        data: { rank: rank as Rank },
+        data: { rank },
       });
     }
 
     // Update game status
     const updatedGame = await prisma.game.update({
-      where: { id: gameId as string },
+      where: { id: params.gameId },
       data: {
         status: "COMPLETED",
         endTime: new Date(),

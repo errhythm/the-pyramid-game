@@ -83,17 +83,12 @@ export default function HomePage() {
         throw new Error(result.error || "Failed to join game");
       }
       
-      // Find the game by code to get the game ID
-      const gamesResponse = await fetch("/api/games");
-      const games = await gamesResponse.json();
-      const game = games.find((g: Game) => g.code === data.code);
-      
-      if (!game) {
-        throw new Error("Game not found");
+      if (!result.gameId) {
+        throw new Error("Game ID not returned from server");
       }
       
       toast.success("Joined game successfully!");
-      router.push(`/games/${game.id}`);
+      router.push(`/games/${result.gameId}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to join game");
     } finally {

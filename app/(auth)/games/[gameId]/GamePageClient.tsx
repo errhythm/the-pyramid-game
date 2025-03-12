@@ -49,7 +49,6 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   
   const isHost = user?.id === game?.hostId;
   const isWaiting = game?.status === "WAITING";
@@ -129,14 +128,11 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
     fetchGame();
     
     const interval = setInterval(fetchGame, 5000); // Poll every 5 seconds
-    setRefreshInterval(interval);
     
     return () => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
+      clearInterval(interval);
     };
-  }, [gameId, fetchGame, refreshInterval]);
+  }, [gameId]);
   
   if (loading) {
     return (

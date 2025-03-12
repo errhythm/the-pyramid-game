@@ -205,11 +205,9 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
     setRefreshInterval(interval);
     
     return () => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
+      clearInterval(interval);
     };
-  }, [gameId, fetchGame, refreshInterval]);
+  }, [gameId, fetchGame]);
   
   // Check if the current user has already voted
   const currentParticipant = game?.participants.find(

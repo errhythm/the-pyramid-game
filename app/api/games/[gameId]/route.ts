@@ -3,21 +3,26 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
 export async function GET(
-  req: NextRequest
+  req: NextRequest,
+  context: { params: Promise<{ gameId: string }> }
 ) {
-  const { searchParams } = new URL(req.url);
-  const gameId = searchParams.get('gameId');
-
   try {
-    const { userId } = await auth();
+    const [{ userId }, params] = await Promise.all([
+      auth(),
+      context.params
+    ]);
     
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    if (!params.gameId) {
+      return NextResponse.json({ error: "Game ID is required" }, { status: 400 });
+    }
     
     // Check if the game exists
     const game = await prisma.game.findUnique({
-      where: { id: gameId as string },
+      where: { id: params.gameId },
       include: {
         host: {
           select: {
@@ -59,7 +64,7 @@ export async function GET(
     
     // Check if the user is a participant or the host
     const isParticipant = game.participants.some(
-      (p: { userId: string }) => p.userId === userId
+      (p) => p.userId === userId
     );
     const isHost = game.hostId === userId;
     
