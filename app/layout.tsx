@@ -8,7 +8,36 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "The Pyramid Game",
-  description: "A magical journey through the pyramid",
+  description: "A magical journey through the pyramid - Join the ultimate social ranking game inspired by Korean drama",
+  openGraph: {
+    title: "The Pyramid Game",
+    description: "A magical journey through the pyramid - Join the ultimate social ranking game inspired by Korean drama",
+    type: "website",
+    locale: "en_US",
+    url: "https://pyramid-game.vercel.app",
+    siteName: "The Pyramid Game",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "The Pyramid Game - Social Ranking Game",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Pyramid Game",
+    description: "A magical journey through the pyramid - Join the ultimate social ranking game inspired by Korean drama",
+    images: ["/og-image.png"],
+    creator: "@pyramidgame",
+  },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon-16x16.png",
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({

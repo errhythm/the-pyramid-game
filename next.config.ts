@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   output: 'standalone',
+  images: {
+    domains: ['pyramid-game.vercel.app'],
+  },
 };
 
 export default nextConfig;
