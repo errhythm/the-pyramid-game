@@ -93,28 +93,28 @@ export default function HistoryPage() {
   
   // Render game card
   const renderGameCard = (game: Game) => (
-    <Card key={game.id} className="border-gray-800 bg-black/50 backdrop-blur-sm shadow-[0_0_15px_rgba(124,58,237,0.15)] hover:shadow-[0_0_20px_rgba(124,58,237,0.2)] transition-all duration-300">
-      <CardHeader className="pb-2">
+    <Card key={game.id} className="bg-zinc-900 border-zinc-800">
+      <CardHeader className="space-y-2">
         <div className="flex items-center justify-between">
-          <CardTitle>{game.title}</CardTitle>
+          <CardTitle className="text-white">{game.title}</CardTitle>
           {getStatusBadge(game.status)}
         </div>
-        <CardDescription>
+        <CardDescription className="text-zinc-400">
           Created {formatDistanceToNow(new Date(game.createdAt), { addSuffix: true })}
         </CardDescription>
       </CardHeader>
-      <CardContent className="pb-2">
-        <div className="space-y-2">
-          <div className="flex items-center text-sm text-gray-400">
-            <Users className="h-4 w-4 mr-2 text-indigo-400" />
+      <CardContent className="space-y-4">
+        <div className="space-y-3">
+          <div className="flex items-center text-sm text-zinc-400">
+            <Users className="h-4 w-4 mr-2 text-purple-400" />
             <span>{game._count.participants} participants</span>
           </div>
-          <div className="flex items-center text-sm text-gray-400">
+          <div className="flex items-center text-sm text-zinc-400">
             <Clock className="h-4 w-4 mr-2 text-purple-400" />
             <span>{game.timeLimit} minutes time limit</span>
           </div>
-          <div className="flex items-center text-sm text-gray-400">
-            <Calendar className="h-4 w-4 mr-2 text-pink-400" />
+          <div className="flex items-center text-sm text-zinc-400">
+            <Calendar className="h-4 w-4 mr-2 text-purple-400" />
             <span>
               {game.status === "WAITING" && "Not started yet"}
               {game.status === "ACTIVE" && game.startTime && `Started ${formatDistanceToNow(new Date(game.startTime), { addSuffix: true })}`}
@@ -127,7 +127,7 @@ export default function HistoryPage() {
       <CardFooter>
         <Button
           variant="outline"
-          className="w-full hover:bg-indigo-900/20 hover:text-white transition-colors"
+          className="w-full bg-zinc-800/50 border-zinc-700 text-white hover:bg-zinc-800 hover:text-white transition-colors"
           onClick={() => {
             if (game.status === "COMPLETED") {
               router.push(`/games/${game.id}/results`);
@@ -145,37 +145,49 @@ export default function HistoryPage() {
   
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto">
-        <Skeleton className="h-12 w-1/2 mb-8" />
-        <Skeleton className="h-10 w-full mb-6" />
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64 bg-zinc-800" />
+          <Skeleton className="h-5 w-96 bg-zinc-800" />
+        </div>
+        <Skeleton className="h-10 w-full bg-zinc-800" />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
+          <Skeleton className="h-64 bg-zinc-800" />
+          <Skeleton className="h-64 bg-zinc-800" />
+          <Skeleton className="h-64 bg-zinc-800" />
+          <Skeleton className="h-64 bg-zinc-800" />
         </div>
       </div>
     );
   }
   
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">Game History</h1>
-        <p className="text-gray-400 mt-2">
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-white">Game History</h1>
+        <p className="text-zinc-400">
           View all your past and current games
         </p>
       </div>
       
       <Tabs defaultValue="active" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger value="active">
+        <TabsList className="bg-zinc-900 border-zinc-800">
+          <TabsTrigger 
+            value="active"
+            className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
+          >
             Active Games ({activeGames.length})
           </TabsTrigger>
-          <TabsTrigger value="completed">
+          <TabsTrigger 
+            value="completed"
+            className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
+          >
             Completed ({completedGames.length})
           </TabsTrigger>
-          <TabsTrigger value="cancelled">
+          <TabsTrigger 
+            value="cancelled"
+            className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
+          >
             Cancelled ({cancelledGames.length})
           </TabsTrigger>
         </TabsList>
@@ -183,10 +195,10 @@ export default function HistoryPage() {
         <TabsContent value="active">
           {activeGames.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-400 mb-4">You have no active games</p>
+              <p className="text-zinc-400 mb-4">You have no active games</p>
               <Button 
                 onClick={() => router.push("/")} 
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-[0_4px_10px_rgba(124,58,237,0.3)]"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
               >
                 Create a Game
               </Button>
@@ -201,10 +213,10 @@ export default function HistoryPage() {
         <TabsContent value="completed">
           {completedGames.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-400 mb-4">You have no completed games</p>
+              <p className="text-zinc-400 mb-4">You have no completed games</p>
               <Button 
                 onClick={() => router.push("/")} 
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-[0_4px_10px_rgba(124,58,237,0.3)]"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
               >
                 Create a Game
               </Button>
@@ -219,7 +231,7 @@ export default function HistoryPage() {
         <TabsContent value="cancelled">
           {cancelledGames.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-400">You have no cancelled games</p>
+              <p className="text-zinc-400">You have no cancelled games</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

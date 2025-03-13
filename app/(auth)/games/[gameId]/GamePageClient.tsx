@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Clock, Copy, QrCode, Play, Users, Triangle } from "lucide-react";
+import { Copy, Play, Triangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QRCodeSVG } from "qrcode.react";
 
 interface Game {
   id: string;
@@ -104,8 +105,7 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ timeLimit: game.timeLimit }),
+        }
       });
       
       const data = await response.json();
@@ -233,14 +233,14 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold bg-gradient-to-br from-zinc-200 to-zinc-400 bg-clip-text text-transparent">{game.title}</h1>
+              <h1 className="text-3xl font-bold text-white">{game.title}</h1>
               <p className="text-zinc-400">
                 Hosted by {game.host.name}
               </p>
             </div>
             <Badge 
               variant={isWaiting ? "outline" : "secondary"}
-              className="bg-black/50 backdrop-blur-sm border-zinc-800/50 text-zinc-400"
+              className="bg-zinc-800/50 border-zinc-700 text-zinc-400"
             >
               {game.status === "WAITING" && "Waiting for players"}
               {game.status === "ACTIVE" && "Game in progress"}
@@ -250,24 +250,11 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Participants Card */}
-          <Card className="relative w-full border-zinc-800/50 bg-zinc-900/40 backdrop-blur-xl pt-8">
-            {/* Card inner glow */}
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-700/5 via-transparent to-zinc-700/5" />
-            
-            {/* Logo */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="relative h-12 w-12 rounded-xl bg-zinc-900 border border-zinc-800/50 shadow-xl">
-                <div className="absolute inset-[2px] rounded-lg bg-gradient-to-br from-zinc-800 to-zinc-900" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-zinc-200" />
-                </div>
-              </div>
-            </div>
-
-            <CardHeader className="relative pb-0 text-center space-y-0">
-              <CardTitle className="text-lg font-bold bg-gradient-to-br from-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-white">
                 Participants ({game._count.participants})
               </CardTitle>
               <CardDescription className="text-zinc-400">
@@ -276,9 +263,9 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
                   : "Players participating in the game"}
               </CardDescription>
             </CardHeader>
-            <Separator className="my-2 bg-zinc-800/50" />
-            <CardContent className="relative p-4">
-              <div className="space-y-4">
+            <Separator className="bg-zinc-800" />
+            <CardContent className="pt-6">
+              <div className="space-y-3">
                 {game?.participants.length === 0 ? (
                   <p className="text-zinc-400 text-center py-4">
                     No participants yet
@@ -289,68 +276,62 @@ export default function GamePageClient({ gameId }: { gameId: string }) {
           </Card>
           
           {/* Game Info Card */}
-          <Card className="relative w-full border-zinc-800/50 bg-zinc-900/40 backdrop-blur-xl pt-8">
-            {/* Card inner glow */}
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-700/5 via-transparent to-zinc-700/5" />
-            
-            {/* Logo */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="relative h-12 w-12 rounded-xl bg-zinc-900 border border-zinc-800/50 shadow-xl">
-                <div className="absolute inset-[2px] rounded-lg bg-gradient-to-br from-zinc-800 to-zinc-900" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Triangle className="w-6 h-6 text-zinc-200" />
-                </div>
-              </div>
-            </div>
-
-            <CardHeader className="relative pb-0 text-center space-y-0">
-              <CardTitle className="text-lg font-bold bg-gradient-to-br from-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+          <Card className="bg-zinc-900 border-zinc-800">
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-white">
                 Game Information
               </CardTitle>
+              <CardDescription className="text-zinc-400">
+                Share this code with others to join
+              </CardDescription>
             </CardHeader>
-            <Separator className="my-2 bg-zinc-800/50" />
-            <CardContent className="relative p-4 space-y-6">
-              <div>
-                <p className="text-sm font-medium text-zinc-400 mb-2">Game Code</p>
+            <Separator className="bg-zinc-800" />
+            <CardContent className="pt-6 space-y-6">
+              {/* Game Code Section */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Game Code</label>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/50">
-                    <p className="text-2xl font-mono tracking-widest bg-gradient-to-br from-zinc-200 to-zinc-400 bg-clip-text text-transparent font-bold">{game.code}</p>
+                  <div className="flex-1 p-3 rounded-lg bg-zinc-800/50 border border-zinc-700">
+                    <p className="text-2xl font-mono tracking-widest text-white font-bold text-center">{game.code}</p>
                   </div>
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-12 w-12 border-zinc-800/50 bg-zinc-900/40 hover:bg-zinc-800/40 transition-colors"
+                    className="h-12 w-12 border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800"
                     onClick={copyGameCode}
                   >
-                    <Copy className="h-4 w-4 text-zinc-400" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-12 w-12 border-zinc-800/50 bg-zinc-900/40 hover:bg-zinc-800/40 transition-colors"
-                  >
-                    <QrCode className="h-4 w-4 text-zinc-400" />
+                    <Copy className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-              
-              <div>
-                <p className="text-sm font-medium text-zinc-400 mb-2">Time Limit</p>
-                <div className="p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/50">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-zinc-400" />
-                    <p className="text-lg text-zinc-200">{game.timeLimit} minutes</p>
-                  </div>
+
+              {/* QR Code Section */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">QR Code</label>
+                <div className="p-6 rounded-lg bg-zinc-800/30 border border-zinc-700/50 flex items-center justify-center group transition-all duration-300 hover:bg-zinc-800/50 hover:border-zinc-700">
+                  <QRCodeSVG 
+                    value={`${window.location.origin}/join/${game.code}`}
+                    size={180}
+                    level="H"
+                    bgColor="transparent"
+                    fgColor="rgba(255, 255, 255, 0.95)"
+                    className="transition-opacity duration-300 group-hover:opacity-100 opacity-90"
+                    title={`Join game ${game.code}`}
+                    includeMargin={true}
+                  />
                 </div>
+                <p className="text-xs text-zinc-400 text-center">
+                  Scan QR code to join the game
+                </p>
               </div>
               
               {isHost && isWaiting && (
                 <Button
                   onClick={startGame}
                   disabled={starting || game._count.participants < 2}
-                  className="w-full bg-zinc-800 hover:bg-zinc-700 transition-colors h-12"
+                  className="w-full bg-purple-600 hover:bg-purple-700 h-11"
                 >
-                  <Play className="mr-2 h-5 w-5" />
+                  <Play className="mr-2 h-4 w-4" />
                   {starting ? "Starting..." : "Start Game"}
                 </Button>
               )}

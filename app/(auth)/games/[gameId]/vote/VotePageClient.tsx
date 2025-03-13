@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Check, AlertTriangle, Clock, Triangle } from "lucide-react";
+import { Check, AlertTriangle, Triangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Game {
@@ -49,7 +49,6 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
-  const [timeLeft, setTimeLeft] = useState<string>("");
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [checkingResults, setCheckingResults] = useState(false);
   
@@ -125,26 +124,6 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
       if (data.status === "COMPLETED") {
         router.push(`/games/${gameId}/results`);
         return;
-      }
-      
-      // Calculate time left
-      if (data.endTime) {
-        const endTime = new Date(data.endTime);
-        const now = new Date();
-        const diff = endTime.getTime() - now.getTime();
-        
-        if (diff <= 0) {
-          // Game has ended
-          toast.info("Time's up! Redirecting to results...");
-          setTimeout(() => {
-            router.push(`/games/${gameId}/results`);
-          }, 2000);
-        } else {
-          // Update time left
-          const minutes = Math.floor(diff / 60000);
-          const seconds = Math.floor((diff % 60000) / 1000);
-          setTimeLeft(`${minutes}:${seconds.toString().padStart(2, "0")}`);
-        }
       }
     } catch {
       toast.error("Failed to fetch game data");
@@ -247,7 +226,7 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
           <Skeleton className="h-6 w-1/2" />
         </div>
         <div className="grid grid-cols-1 gap-6">
-          <Skeleton className="h-[600px] rounded-3xl" />
+          <Skeleton className="h-[600px] rounded-xl" />
         </div>
       </div>
     );
@@ -255,25 +234,26 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
   
   if (!game) {
     return (
-      <div className="text-center space-y-6">
-        <div className="flex items-center justify-center">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-orange-600/20 rounded-2xl blur-xl"></div>
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-white/[0.05] shadow-[0_0_25px_rgba(239,68,68,0.2)] relative">
-              <Triangle className="h-8 w-8 text-red-400" />
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="text-center space-y-6 max-w-md mx-auto px-4">
+          <div className="flex items-center justify-center">
+            <div className="relative">
+              <div className="p-4 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
+                <Triangle className="h-8 w-8 text-zinc-400" />
+              </div>
             </div>
           </div>
+          <h1 className="text-2xl font-bold text-white">Game not found</h1>
+          <p className="text-zinc-400">
+            The game you&apos;re looking for doesn&apos;t exist or has been removed.
+          </p>
+          <Button 
+            onClick={() => router.push("/")}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            Go Home
+          </Button>
         </div>
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">Game not found</h1>
-        <p className="text-gray-400">
-          The game you&apos;re looking for doesn&apos;t exist or has been removed.
-        </p>
-        <Button 
-          onClick={() => router.push("/")}
-          className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-[0_4px_10px_rgba(239,68,68,0.3)] transition-all duration-300"
-        >
-          Go Home
-        </Button>
       </div>
     );
   }
@@ -282,51 +262,34 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
     <div className="space-y-8">
       {/* Background effects */}
       <div className="fixed inset-0">
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0 mix-blend-overlay bg-noise"></div>
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-conic from-purple-500/10 via-blue-500/10 to-purple-500/10 animate-slow-spin"></div>
-          <div className="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-purple-500/10 to-transparent"></div>
-          <div className="absolute inset-0 bg-zinc-950/40 backdrop-blur-3xl"></div>
-        </div>
+        <div className="absolute inset-0 bg-zinc-950"></div>
       </div>
 
       {/* Content */}
-      <div className="relative z-10">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">{game.title}</h1>
-              <p className="text-gray-400">
-                Cast your votes wisely
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Badge 
-                variant="outline"
-                className="bg-black/50 backdrop-blur-sm border-purple-500/20 text-purple-400 px-4 py-2"
-              >
-                <Clock className="w-4 h-4 mr-2" />
-                {timeLeft}
-              </Badge>
-              <Badge 
-                variant="outline"
-                className="bg-black/50 backdrop-blur-sm border-purple-500/20 text-purple-400 px-4 py-2"
-              >
-                {game._count.votes} / {game._count.participants} voted
-              </Badge>
-            </div>
+      <div className="relative z-10 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-white">{game.title}</h1>
+            <p className="text-zinc-400">
+              Cast your votes wisely
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <Badge 
+              variant="outline"
+              className="bg-zinc-800/50 border-zinc-700 text-zinc-400 px-4 py-2 w-full sm:w-auto"
+            >
+              {Math.round((game.participants.filter(p => p.status === "VOTED").length / game._count.participants) * 100)}% voted
+            </Badge>
           </div>
         </div>
         
-        <Card className="border-gray-800/50 bg-black/30 backdrop-blur-xl shadow-[0_0_25px_rgba(124,58,237,0.1)] relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5"></div>
-          
-          <CardHeader className="relative">
-            <CardTitle className="text-2xl bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="px-6 pt-6">
+            <CardTitle className="text-xl text-white">
               {hasVoted ? "Waiting for others" : "Select Participants"}
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-zinc-400 mt-1.5">
               {hasVoted 
                 ? "You have already cast your votes. Waiting for others to complete voting."
                 : `Select up to ${maxVotes} participants to vote for`
@@ -334,127 +297,91 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="relative">
+          <CardContent className="px-6 pt-6">
             {hasVoted ? (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {game.participants.map((participant) => (
-                    <div
-                      key={participant.id}
-                      className={`
-                        p-4 rounded-xl border transition-all duration-300
-                        ${participant.status === "VOTED"
-                          ? "bg-purple-500/10 border-purple-500/20"
-                          : participant.status === "ABSTAINED"
-                          ? "bg-red-500/10 border-red-500/20"
-                          : "bg-black/30 border-gray-800/50"}
-                      `}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Avatar className="border-2 border-transparent">
-                          <AvatarImage src={participant.user.imageUrl || undefined} />
-                          <AvatarFallback className={`
-                            ${participant.status === "VOTED"
-                              ? "bg-purple-500/10 text-purple-400"
-                              : participant.status === "ABSTAINED"
-                              ? "bg-red-500/10 text-red-400"
-                              : "bg-gray-500/10 text-gray-400"}
-                          `}>
-                            {participant.user.name.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-gray-200">{participant.user.name}</p>
-                          <Badge 
-                            variant="outline"
-                            className={`
-                              mt-1 text-xs
-                              ${participant.status === "VOTED"
-                                ? "border-purple-500/20 text-purple-400"
-                                : participant.status === "ABSTAINED"
-                                ? "border-red-500/20 text-red-400"
-                                : "border-gray-700 text-gray-400"}
-                            `}
-                          >
-                            {participant.status === "VOTED" && "Voted"}
-                            {participant.status === "ABSTAINED" && "Abstained"}
-                            {participant.status === "JOINED" && "Not voted"}
-                          </Badge>
-                        </div>
-                      </div>
+                <div className="py-12 flex flex-col items-center justify-center text-center space-y-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative bg-zinc-800/80 p-6 rounded-full border border-purple-500/30">
+                      <Check className="w-12 h-12 text-purple-400" />
                     </div>
-                  ))}
-                </div>
-                
-                {allParticipantsVoted && (
-                  <div className="flex justify-center">
+                  </div>
+                  <div className="space-y-2 max-w-md mx-auto">
+                    <h2 className="text-xl font-semibold text-white">Votes Cast Successfully!</h2>
+                    <p className="text-zinc-400">
+                      Your magical votes have been sealed. The pyramid&apos;s mysteries will be revealed once all participants complete their voting.
+                    </p>
+                  </div>
+                  
+                  {game.hostId === user?.id && allParticipantsVoted && (
                     <Button
                       onClick={completeGame}
                       disabled={checkingResults}
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-[0_4px_10px_rgba(124,58,237,0.3)] transition-all duration-300"
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-8 h-11"
                     >
-                      {checkingResults ? "Checking results..." : "View Results"}
+                      {checkingResults ? "Revealing Results..." : "Reveal Results"}
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ) : (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {game.participants
-                    .filter((p) => p.userId !== user?.id) // Exclude current user
+                    .filter((p) => p.userId !== user?.id)
                     .map((participant) => (
                       <button
                         key={participant.id}
                         onClick={() => toggleParticipant(participant.userId)}
                         disabled={submitting}
                         className={`
-                          p-4 rounded-xl border w-full text-left
+                          p-4 rounded-xl border w-full text-left transition-all duration-300
                           ${selectedParticipants.includes(participant.userId)
-                            ? "bg-purple-500/10 border-purple-500/20"
-                            : "bg-black/30 border-gray-800/50"}
+                            ? "bg-zinc-800/80 border-purple-500/50"
+                            : "bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800/80 hover:border-zinc-600"}
                         `}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                           <Avatar className={`
-                            border-2
+                            h-10 w-10 border-2 transition-all duration-300
                             ${selectedParticipants.includes(participant.userId)
-                              ? "border-purple-500/20"
+                              ? "border-purple-500/50"
                               : "border-transparent"}
                           `}>
                             <AvatarImage src={participant.user.imageUrl || undefined} />
                             <AvatarFallback className={`
                               ${selectedParticipants.includes(participant.userId)
                                 ? "bg-purple-500/10 text-purple-400"
-                                : "bg-gray-500/10 text-gray-400"}
+                                : "bg-zinc-800 text-zinc-400"}
                             `}>
                               {participant.user.name.substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
-                            <p className="font-medium text-gray-200">{participant.user.name}</p>
+                            <p className="font-medium text-zinc-200">{participant.user.name}</p>
                             {selectedParticipants.includes(participant.userId) && (
                               <Badge 
                                 variant="outline"
-                                className="mt-1 border-purple-500/20 text-purple-400"
+                                className="mt-2 border-purple-500/50 text-purple-400"
                               >
                                 Selected
                               </Badge>
                             )}
                           </div>
                           {selectedParticipants.includes(participant.userId) && (
-                            <Check className="w-5 h-5 text-purple-400" />
+                            <Check className="w-5 h-5 text-purple-400 flex-shrink-0" />
                           )}
                         </div>
                       </button>
                     ))}
                 </div>
                 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
                   <Button
                     onClick={submitVotes}
                     disabled={submitting || selectedParticipants.length === 0}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-[0_4px_10px_rgba(124,58,237,0.3)] transition-all duration-300 h-12"
+                    className="bg-purple-600 hover:bg-purple-700 text-white h-11"
                   >
                     {submitting ? "Submitting..." : "Submit Votes"}
                   </Button>
@@ -462,7 +389,7 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
                     onClick={skipVoting}
                     disabled={submitting}
                     variant="outline"
-                    className="flex-1 border-gray-800/50 bg-black/30 hover:bg-red-900/20 hover:border-red-500/20 hover:text-red-400 transition-all duration-300 h-12"
+                    className="border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 hover:border-red-500/50 hover:text-red-400 h-11"
                   >
                     <AlertTriangle className="w-4 h-4 mr-2" />
                     Skip Voting

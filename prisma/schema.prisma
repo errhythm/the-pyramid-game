@@ -33,7 +33,6 @@ model Game {
   code         String        @unique // 6-digit code for joining
   title        String
   status       GameStatus    @default(WAITING)
-  timeLimit    Int           @default(30) // Time limit in minutes
   startTime    DateTime?
   endTime      DateTime?
   createdAt    DateTime      @default(now())

@@ -297,23 +297,18 @@ export default function ResultsPageClient({ gameId }: { gameId: string }) {
   
   return (
     <div className="space-y-8">
-      {/* Noise texture overlay */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0 mix-blend-overlay bg-noise"></div>
-      
-      {/* Background gradient effects */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent"></div>
-        <div className="absolute inset-0 bg-gradient-conic from-purple-500/10 via-blue-500/10 to-purple-500/10 animate-slow-spin"></div>
-        <div className="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-purple-500/10 to-transparent"></div>
-        <div className="absolute inset-0 bg-zinc-950/40 backdrop-blur-3xl"></div>
+      {/* Background effects */}
+      <div className="fixed inset-0">
+        <div className="absolute inset-0 bg-zinc-950"></div>
       </div>
 
+      {/* Content */}
       <div className="relative z-10">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">{game.title}</h1>
-              <p className="text-gray-400">
+              <p className="text-zinc-400">
                 Final rankings based on votes {game.status !== "COMPLETED" && "- Waiting for game to complete"}
               </p>
             </div>
@@ -322,23 +317,119 @@ export default function ResultsPageClient({ gameId }: { gameId: string }) {
                 variant="outline"
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="border-gray-800/50 bg-black/30 hover:bg-purple-900/20 hover:border-purple-500/20 transition-all duration-300"
+                className="bg-purple-600/20 border-purple-500/50 hover:bg-purple-600/30 hover:border-purple-400 text-purple-300 transition-all duration-300 px-4 h-10"
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
                 {refreshing ? "Refreshing..." : "Refresh"}
               </Button>
-              <Badge 
-                variant="outline"
-                className="bg-black/50 backdrop-blur-sm border-purple-500/20 text-purple-400 px-4 py-2"
-              >
-                Game Results
-              </Badge>
             </div>
           </div>
         </div>
         
-        <div className="space-y-6">
-          {rankCards}
+        <div className="mt-8">
+          <Card className="bg-zinc-900/50 border-zinc-800">
+            <CardContent className="p-6 space-y-4">
+              {["A", "B", "C", "D", "F"].map((rank) => (
+                <div key={rank} className="relative">
+                  <div className={`
+                    border-b border-zinc-800 pb-4
+                    ${rank === "F" ? "border-red-500/20" : ""}
+                  `}>
+                    <div className="flex items-center gap-3 mb-2">
+                      {getRankIcon(rank)}
+                      <h3 className={`
+                        text-lg font-semibold
+                        ${rank === "F" ? "text-red-400" : "text-purple-400"}
+                      `}>
+                        Rank {rank}
+                      </h3>
+                      <Badge 
+                        variant="outline"
+                        className={`
+                          ml-2 px-2 py-0.5 text-xs
+                          ${rank === "F" 
+                            ? "border-red-500/20 text-red-400" 
+                            : "border-purple-500/20 text-purple-400"}
+                        `}
+                      >
+                        {participantsByRank[rank as keyof typeof participantsByRank].length} participants
+                      </Badge>
+                    </div>
+                    
+                    {participantsByRank[rank as keyof typeof participantsByRank].length === 0 ? (
+                      <p className={`
+                        text-sm pl-8
+                        ${rank === "F" ? "text-red-400/60" : "text-zinc-400"}
+                      `}>
+                        No participants in this rank
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {participantsByRank[rank as keyof typeof participantsByRank].map((participant) => (
+                          <div
+                            key={participant.id}
+                            className={`
+                              flex items-center gap-3 pl-8
+                              ${rank === "F" ? "text-red-400" : "text-zinc-200"}
+                            `}
+                          >
+                            <Avatar className={`
+                              h-8 w-8 border
+                              ${rank === "F"
+                                ? "border-red-500/20"
+                                : "border-purple-500/20"}
+                            `}>
+                              <AvatarImage src={participant.user.imageUrl || undefined} />
+                              <AvatarFallback className={`
+                                text-sm
+                                ${rank === "F"
+                                  ? "bg-red-500/10 text-red-400"
+                                  : "bg-purple-500/10 text-purple-400"}
+                              `}>
+                                {participant.user.name.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{participant.user.name}</span>
+                              <div className="flex gap-1.5">
+                                <Badge 
+                                  variant="outline"
+                                  className={`
+                                    text-xs px-1.5
+                                    ${rank === "F"
+                                      ? "border-red-500/20 text-red-400"
+                                      : "border-purple-500/20 text-purple-400"}
+                                  `}
+                                >
+                                  {participant.voteCount} {participant.voteCount === 1 ? "vote" : "votes"}
+                                </Badge>
+                                {participant.status === "ABSTAINED" && (
+                                  <Badge 
+                                    variant="outline"
+                                    className="text-xs px-1.5 border-red-500/20 text-red-400"
+                                  >
+                                    Abstained
+                                  </Badge>
+                                )}
+                                {game && participant.userId === game.hostId && (
+                                  <Badge 
+                                    variant="outline"
+                                    className="text-xs px-1.5 border-purple-500/20 text-purple-400"
+                                  >
+                                    Host
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

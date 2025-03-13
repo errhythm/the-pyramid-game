@@ -45,7 +45,7 @@ export function Header() {
                   className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
                   asChild
                 >
-                  <Link href="/games" className="flex items-center space-x-2">
+                  <Link href="/history" className="flex items-center space-x-2">
                     <History className="h-4 w-4" />
                     <span>My Games</span>
                   </Link>
@@ -81,27 +81,7 @@ export function Header() {
                   className="w-full justify-start text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
                   asChild
                 >
-                  <Link href="/host" className="flex items-center space-x-2">
-                    <Plus className="h-4 w-4" />
-                    <span>Host a Game</span>
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
-                  asChild
-                >
-                  <Link href="/join" className="flex items-center space-x-2">
-                    <LogIn className="h-4 w-4" />
-                    <span>Join a Game</span>
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
-                  asChild
-                >
-                  <Link href="/games" className="flex items-center space-x-2">
+                  <Link href="/history" className="flex items-center space-x-2">
                     <History className="h-4 w-4" />
                     <span>My Games</span>
                   </Link>

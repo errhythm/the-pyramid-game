@@ -6,8 +6,6 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ gameId: string }> }
 ) {
-  const { timeLimit } = await req.json();
-
   try {
     const [{ userId }, params] = await Promise.all([
       auth(),
@@ -55,7 +53,6 @@ export async function POST(
       data: {
         status: "ACTIVE",
         startTime: new Date(),
-        timeLimit,
       },
     });
 

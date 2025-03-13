@@ -76,20 +76,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const { title, timeLimit } = await req.json();
+    const { title } = await req.json();
     
     if (!title) {
       return NextResponse.json(
         { error: "Title is required" },
-        { status: 400 }
-      );
-    }
-
-    // Ensure timeLimit is a number and has a valid value
-    const parsedTimeLimit = parseInt(timeLimit, 10);
-    if (isNaN(parsedTimeLimit) || parsedTimeLimit < 1) {
-      return NextResponse.json(
-        { error: "Time limit must be a valid number greater than 0" },
         { status: 400 }
       );
     }
@@ -149,7 +140,6 @@ export async function POST(req: Request) {
         title,
         code,
         status: 'WAITING',
-        timeLimit: timeLimit || 60,
         host: {
           connect: {
             id: userId
