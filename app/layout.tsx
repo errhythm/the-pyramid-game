@@ -1,43 +1,45 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
-import { dark } from "@clerk/themes";
+import { Inter } from "next/font/google";
+import { ToasterProvider } from "@/components/ToasterProvider";
+import { BackgroundParticles } from "@/components/BackgroundParticles";
+import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Pyramid Game",
-  description: "A web app for playing the Pyramid Game",
+export const metadata = {
+  title: "The Pyramid Game",
+  description: "A magical journey through the pyramid",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <ClerkProvider
-      appearance={{
-        baseTheme: dark,
-        elements: {
-          formButtonPrimary: "bg-indigo-500 hover:bg-indigo-600 text-sm normal-case",
-        },
-      }}
-    >
+    <ClerkProvider>
       <html lang="en" className="dark">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white min-h-screen`}
-        >
-          {children}
+        <body className={`${inter.className} min-h-screen flex flex-col bg-zinc-950 relative overflow-hidden`}>
+          {/* Noise texture overlay */}
+          <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0 mix-blend-overlay bg-noise"></div>
+          
+          {/* Background gradient effects */}
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-conic from-purple-500/10 via-blue-500/10 to-purple-500/10 animate-slow-spin"></div>
+            <div className="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-purple-500/10 to-transparent"></div>
+            <div className="absolute inset-0 bg-zinc-950/40 backdrop-blur-3xl"></div>
+          </div>
+
+          {/* Floating particles */}
+          <BackgroundParticles />
+
+          {/* Main Content */}
+          <div className="relative flex flex-col flex-1 z-10">
+            {children}
+          </div>
+
+          <ToasterProvider />
         </body>
       </html>
     </ClerkProvider>

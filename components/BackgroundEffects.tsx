@@ -1,20 +1,115 @@
 "use client";
 
+import { useEffect, useRef } from 'react';
+
 export function BackgroundEffects() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size
+    const resizeCanvas = () => {
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Particle system
+    class Particle {
+      x: number;
+      y: number;
+      size: number;
+      speedX: number;
+      speedY: number;
+      opacity: number;
+
+      constructor() {
+        this.x = Math.random() * window.innerWidth;
+        this.y = Math.random() * window.innerHeight;
+        this.size = Math.random() * 2;
+        this.speedX = (Math.random() - 0.5) * 0.5;
+        this.speedY = (Math.random() - 0.5) * 0.5;
+        this.opacity = Math.random() * 0.5;
+      }
+
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+
+        if (this.x < 0) this.x = window.innerWidth;
+        if (this.x > window.innerWidth) this.x = 0;
+        if (this.y < 0) this.y = window.innerHeight;
+        if (this.y > window.innerHeight) this.y = 0;
+
+        this.opacity = Math.sin(Date.now() * 0.001) * 0.2 + 0.3;
+      }
+
+      draw(ctx: CanvasRenderingContext2D) {
+        ctx.fillStyle = `rgba(161, 161, 170, ${this.opacity})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Create particles
+    const particles: Particle[] = [];
+    for (let i = 0; i < 100; i++) {
+      particles.push(new Particle());
+    }
+
+    // Animation loop
+    let animationFrameId: number;
+    const animate = () => {
+      if (!ctx || !canvas) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Update and draw particles
+      particles.forEach(particle => {
+        particle.update();
+        particle.draw(ctx);
+      });
+
+      // Draw connecting lines
+      particles.forEach((particle, index) => {
+        for (let j = index + 1; j < particles.length; j++) {
+          const dx = particle.x - particles[j].x;
+          const dy = particle.y - particles[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 100) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(161, 161, 170, ${0.1 * (1 - distance / 100)})`;
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      });
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden">
-      {/* Main gradient blobs */}
-      <div className="absolute top-0 -left-4 w-[500px] h-[500px] bg-gradient-to-r from-violet-900 via-purple-900 to-fuchsia-900 rounded-full mix-blend-normal filter blur-[128px] opacity-20"></div>
-      <div className="absolute top-0 -right-4 w-[500px] h-[500px] bg-gradient-to-l from-blue-900 via-indigo-900 to-violet-900 rounded-full mix-blend-normal filter blur-[128px] opacity-20"></div>
-      <div className="absolute -bottom-8 left-20 w-[500px] h-[500px] bg-gradient-to-tr from-fuchsia-900 via-purple-900 to-violet-900 rounded-full mix-blend-normal filter blur-[128px] opacity-20"></div>
-      <div className="absolute -bottom-8 right-20 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-900 via-violet-900 to-purple-900 rounded-full mix-blend-normal filter blur-[128px] opacity-20"></div>
-      
-      {/* Accent blobs */}
-      <div className="absolute top-1/4 left-1/3 w-72 h-72 bg-gradient-to-r from-purple-500/30 to-transparent rounded-full mix-blend-screen filter blur-xl"></div>
-      <div className="absolute bottom-1/4 right-1/3 w-72 h-72 bg-gradient-to-l from-indigo-500/30 to-transparent rounded-full mix-blend-screen filter blur-xl"></div>
-      
-      {/* Subtle particle effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(124,58,237,0.1)_1px,transparent_1px)] opacity-50" style={{ backgroundSize: '24px 24px' }}></div>
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-0"
+      style={{ opacity: 0.5 }}
+    />
   );
 } 

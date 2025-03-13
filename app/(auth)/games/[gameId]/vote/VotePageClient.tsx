@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Check, AlertTriangle } from "lucide-react";
+import { Check, AlertTriangle, Clock, Triangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Game {
@@ -53,19 +53,32 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [checkingResults, setCheckingResults] = useState(false);
   
-  // Calculate maximum allowed votes based on participant count
-  const calculateMaxVotes = (totalParticipants: number) => {
-    const twentyPercent = Math.ceil(totalParticipants * 0.2);
+  // Memoize calculations
+  const maxVotes = useMemo(() => {
+    if (!game?.participants) return 1;
+    const twentyPercent = Math.ceil(game.participants.length * 0.2);
     return Math.min(5, Math.max(1, twentyPercent));
-  };
+  }, [game?.participants]);
   
-  // Check if all participants have voted
-  const allParticipantsVoted = game?.participants.every(
-    (p) => p.status === "VOTED" || p.status === "ABSTAINED"
+  const allParticipantsVoted = useMemo(() => 
+    game?.participants.every(
+      (p) => p.status === "VOTED" || p.status === "ABSTAINED"
+    ),
+    [game?.participants]
+  );
+
+  const currentParticipant = useMemo(() => 
+    game?.participants.find((p) => p.userId === user?.id),
+    [game?.participants, user?.id]
+  );
+
+  const hasVoted = useMemo(() => 
+    currentParticipant?.status === "VOTED" || currentParticipant?.status === "ABSTAINED",
+    [currentParticipant?.status]
   );
 
   // Function to complete the game
-  const completeGame = async () => {
+  const completeGame = useCallback(async () => {
     setCheckingResults(true);
     try {
       const response = await fetch(`/api/games/${gameId}/complete`, {
@@ -84,7 +97,7 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
       toast.error("Failed to complete game");
       setCheckingResults(false);
     }
-  };
+  }, [gameId, router]);
   
   // Fetch game data
   const fetchGame = useCallback(async () => {
@@ -114,15 +127,6 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
         return;
       }
       
-      // Check if the user has already voted
-      const currentParticipant = data.participants.find(
-        (p: { userId: string }) => p.userId === user?.id
-      );
-      
-      if (currentParticipant?.status === "VOTED") {
-        toast.info("You have already voted. Waiting for others to complete voting.");
-      }
-      
       // Calculate time left
       if (data.endTime) {
         const endTime = new Date(data.endTime);
@@ -131,7 +135,7 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
         
         if (diff <= 0) {
           // Game has ended
-          toast.info("Time&apos;s up! Redirecting to results...");
+          toast.info("Time's up! Redirecting to results...");
           setTimeout(() => {
             router.push(`/games/${gameId}/results`);
           }, 2000);
@@ -147,24 +151,26 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [gameId, router, user?.id]);
+  }, [gameId, router]);
   
   // Toggle participant selection
-  const toggleParticipant = (userId: string) => {
-    if (selectedParticipants.includes(userId)) {
-      setSelectedParticipants(selectedParticipants.filter((id) => id !== userId));
-    } else {
-      const maxVotes = calculateMaxVotes(game?.participants.length || 0);
-      if (selectedParticipants.length < maxVotes) {
-        setSelectedParticipants([...selectedParticipants, userId]);
+  const toggleParticipant = useCallback((userId: string) => {
+    setSelectedParticipants(prev => {
+      if (prev.includes(userId)) {
+        return prev.filter((id) => id !== userId);
       } else {
-        toast.error(`You can only vote for up to ${maxVotes} participant${maxVotes === 1 ? '' : 's'}`);
+        if (prev.length < maxVotes) {
+          return [...prev, userId];
+        } else {
+          toast.error(`You can only vote for up to ${maxVotes} participant${maxVotes === 1 ? '' : 's'}`);
+          return prev;
+        }
       }
-    }
-  };
+    });
+  }, [maxVotes]);
   
   // Submit votes
-  const submitVotes = async () => {
+  const submitVotes = useCallback(async () => {
     if (selectedParticipants.length === 0) {
       toast.error("Please select at least one participant to vote for");
       return;
@@ -189,16 +195,16 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
       }
       
       toast.success("Votes submitted successfully!");
-      fetchGame(); // Refresh game data
+      fetchGame();
     } catch {
       toast.error("Failed to submit votes");
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [selectedParticipants, gameId, fetchGame]);
   
   // Skip voting (abstain)
-  const skipVoting = async () => {
+  const skipVoting = useCallback(async () => {
     setSubmitting(true);
     try {
       const response = await fetch(`/api/games/${gameId}/vote/skip`, {
@@ -212,41 +218,36 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
       }
       
       toast.success("Skipped voting successfully!");
-      // Update the game data to reflect the new state
-      const updatedGame = await fetch(`/api/games/${gameId}`).then(res => res.json());
-      setGame(updatedGame);
+      fetchGame();
     } catch {
       toast.error("Failed to skip voting");
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [gameId, fetchGame]);
   
-  // Set up polling for game updates
+  // Set up polling for game updates with optimized interval
   useEffect(() => {
     fetchGame();
     
-    const interval = setInterval(fetchGame, 5000); // Poll every 5 seconds
+    // Use a longer polling interval if the user has voted
+    const interval = setInterval(fetchGame, hasVoted ? 10000 : 5000);
     setRefreshInterval(interval);
     
     return () => {
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
-  }, [gameId, fetchGame]);
-  
-  // Check if the current user has already voted
-  const currentParticipant = game?.participants.find(
-    (p) => p.userId === user?.id
-  );
-  const hasVoted = currentParticipant?.status === "VOTED" || currentParticipant?.status === "ABSTAINED";
+  }, [gameId, fetchGame, hasVoted]);
   
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto">
-        <Skeleton className="h-12 w-3/4 mb-4" />
-        <Skeleton className="h-6 w-1/2 mb-8" />
+      <div className="space-y-8">
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-3/4" />
+          <Skeleton className="h-6 w-1/2" />
+        </div>
         <div className="grid grid-cols-1 gap-6">
-          <Skeleton className="h-96" />
+          <Skeleton className="h-[600px] rounded-3xl" />
         </div>
       </div>
     );
@@ -254,12 +255,23 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
   
   if (!game) {
     return (
-      <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-2xl font-bold">Game not found</h1>
-        <p className="text-gray-400 mt-2">
+      <div className="text-center space-y-6">
+        <div className="flex items-center justify-center">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-orange-600/20 rounded-2xl blur-xl"></div>
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-red-500/10 to-orange-500/10 border border-white/[0.05] shadow-[0_0_25px_rgba(239,68,68,0.2)] relative">
+              <Triangle className="h-8 w-8 text-red-400" />
+            </div>
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">Game not found</h1>
+        <p className="text-gray-400">
           The game you&apos;re looking for doesn&apos;t exist or has been removed.
         </p>
-        <Button className="mt-4" onClick={() => router.push("/")}>
+        <Button 
+          onClick={() => router.push("/")}
+          className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 shadow-[0_4px_10px_rgba(239,68,68,0.3)] transition-all duration-300"
+        >
           Go Home
         </Button>
       </div>
@@ -267,134 +279,200 @@ export default function VotePageClient({ gameId }: { gameId: string }) {
   }
   
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">{game.title}</h1>
-          <Badge variant="secondary">
-            {timeLeft ? `Time left: ${timeLeft}` : "Game in progress"}
-          </Badge>
+    <div className="space-y-8">
+      {/* Background effects */}
+      <div className="fixed inset-0">
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0 mix-blend-overlay bg-noise"></div>
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-conic from-purple-500/10 via-blue-500/10 to-purple-500/10 animate-slow-spin"></div>
+          <div className="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-purple-500/10 to-transparent"></div>
+          <div className="absolute inset-0 bg-zinc-950/40 backdrop-blur-3xl"></div>
         </div>
-        <p className="text-gray-400 mt-2">
-          Cast your votes for other participants
-        </p>
       </div>
-      
-      <Card className="border-gray-800 bg-black/50 backdrop-blur-sm mb-6 shadow-[0_0_15px_rgba(124,58,237,0.15)]">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <AlertTriangle className="mr-2 h-5 w-5 text-amber-500" />
-            Voting Rules
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="list-disc pl-5 space-y-2 text-gray-300">
-            <li>You can vote for up to {calculateMaxVotes(game?.participants.length || 0)} {calculateMaxVotes(game?.participants.length || 0) === 1 ? 'participant' : 'participants'}</li>
-            <li>You cannot vote for yourself</li>
-            <li>You cannot vote for the same person twice</li>
-            <li>Your votes will determine the final rankings</li>
-            <li>If you don&apos;t vote before the time limit, you&apos;ll receive an F rank</li>
-            <li>Once you submit your votes, you cannot change them</li>
-          </ul>
-        </CardContent>
-      </Card>
-      
-      <Card className="border-gray-800 bg-black/50 backdrop-blur-sm shadow-[0_0_15px_rgba(124,58,237,0.15)]">
-        <CardHeader>
-          <CardTitle>Cast Your Votes</CardTitle>
-          <CardDescription>
-            Select up to {calculateMaxVotes(game?.participants.length || 0)} {calculateMaxVotes(game?.participants.length || 0) === 1 ? 'participant' : 'participants'} to vote for
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {hasVoted ? (
-            <div className="text-center py-6">
-              <div className="relative inline-block">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 opacity-20 blur-xl"></div>
-                <Check className="h-16 w-16 text-green-500 mx-auto mb-4 relative z-10" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Votes Submitted</h3>
-              <p className="text-gray-400 mb-6">
-                {allParticipantsVoted 
-                  ? "All participants have completed voting!"
-                  : game.hostId === user?.id
-                    ? "Not all participants have voted yet. You can end the game early to mark remaining participants as abstained."
-                    : "You have already cast your votes. Waiting for others to complete voting."}
+
+      {/* Content */}
+      <div className="relative z-10">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">{game.title}</h1>
+              <p className="text-gray-400">
+                Cast your votes wisely
               </p>
-              {(allParticipantsVoted || game.hostId === user?.id) && game.hostId === user?.id && (
-                <Button
-                  onClick={completeGame}
-                  disabled={checkingResults}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all duration-300 shadow-[0_4px_10px_rgba(16,185,129,0.3)]"
-                >
-                  {checkingResults ? "Checking Results..." : allParticipantsVoted ? "End Game & View Results" : "End Game Early"}
-                </Button>
-              )}
             </div>
-          ) : (
-            <div className="space-y-4">
-              {game.participants
-                .filter((p) => p.userId !== user?.id) // Filter out the current user
-                .map((participant) => (
-                  <div
-                    key={participant.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border ${
-                      selectedParticipants.includes(participant.userId)
-                        ? "border-indigo-500 bg-indigo-950/30 shadow-[0_0_10px_rgba(124,58,237,0.2)]"
-                        : "border-gray-800 hover:border-gray-700"
-                    } cursor-pointer transition-all duration-200`}
-                    onClick={() => toggleParticipant(participant.userId)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={participant.user.imageUrl || undefined} />
-                        <AvatarFallback>
-                          {participant.user.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{participant.user.name}</p>
-                        {participant.userId === game.hostId && (
-                          <p className="text-xs text-gray-400">Host</p>
-                        )}
+            <div className="flex items-center gap-4">
+              <Badge 
+                variant="outline"
+                className="bg-black/50 backdrop-blur-sm border-purple-500/20 text-purple-400 px-4 py-2"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                {timeLeft}
+              </Badge>
+              <Badge 
+                variant="outline"
+                className="bg-black/50 backdrop-blur-sm border-purple-500/20 text-purple-400 px-4 py-2"
+              >
+                {game._count.votes} / {game._count.participants} voted
+              </Badge>
+            </div>
+          </div>
+        </div>
+        
+        <Card className="border-gray-800/50 bg-black/30 backdrop-blur-xl shadow-[0_0_25px_rgba(124,58,237,0.1)] relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5"></div>
+          
+          <CardHeader className="relative">
+            <CardTitle className="text-2xl bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+              {hasVoted ? "Waiting for others" : "Select Participants"}
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              {hasVoted 
+                ? "You have already cast your votes. Waiting for others to complete voting."
+                : `Select up to ${maxVotes} participants to vote for`
+              }
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="relative">
+            {hasVoted ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {game.participants.map((participant) => (
+                    <div
+                      key={participant.id}
+                      className={`
+                        p-4 rounded-xl border transition-all duration-300
+                        ${participant.status === "VOTED"
+                          ? "bg-purple-500/10 border-purple-500/20"
+                          : participant.status === "ABSTAINED"
+                          ? "bg-red-500/10 border-red-500/20"
+                          : "bg-black/30 border-gray-800/50"}
+                      `}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar className="border-2 border-transparent">
+                          <AvatarImage src={participant.user.imageUrl || undefined} />
+                          <AvatarFallback className={`
+                            ${participant.status === "VOTED"
+                              ? "bg-purple-500/10 text-purple-400"
+                              : participant.status === "ABSTAINED"
+                              ? "bg-red-500/10 text-red-400"
+                              : "bg-gray-500/10 text-gray-400"}
+                          `}>
+                            {participant.user.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-gray-200">{participant.user.name}</p>
+                          <Badge 
+                            variant="outline"
+                            className={`
+                              mt-1 text-xs
+                              ${participant.status === "VOTED"
+                                ? "border-purple-500/20 text-purple-400"
+                                : participant.status === "ABSTAINED"
+                                ? "border-red-500/20 text-red-400"
+                                : "border-gray-700 text-gray-400"}
+                            `}
+                          >
+                            {participant.status === "VOTED" && "Voted"}
+                            {participant.status === "ABSTAINED" && "Abstained"}
+                            {participant.status === "JOINED" && "Not voted"}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                    {selectedParticipants.includes(participant.userId) && (
-                      <Check className="h-5 w-5 text-indigo-500" />
-                    )}
-                  </div>
-                ))}
-              <CardFooter className="flex justify-between items-center gap-4">
-                <div className="text-sm text-gray-400">
-                  Selected: {selectedParticipants.length}/{calculateMaxVotes(game?.participants.length || 0)}
+                  ))}
                 </div>
-                <div className="flex gap-4">
-                  {calculateMaxVotes(game?.participants.length || 0) === 1 && (
+                
+                {allParticipantsVoted && (
+                  <div className="flex justify-center">
                     <Button
-                      onClick={skipVoting}
-                      disabled={submitting}
-                      variant="outline"
-                      className="border-gray-800 hover:bg-gray-800/50 transition-all duration-300"
+                      onClick={completeGame}
+                      disabled={checkingResults}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-[0_4px_10px_rgba(124,58,237,0.3)] transition-all duration-300"
                     >
-                      Skip Voting
+                      {checkingResults ? "Checking results..." : "View Results"}
                     </Button>
-                  )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {game.participants
+                    .filter((p) => p.userId !== user?.id) // Exclude current user
+                    .map((participant) => (
+                      <button
+                        key={participant.id}
+                        onClick={() => toggleParticipant(participant.userId)}
+                        disabled={submitting}
+                        className={`
+                          p-4 rounded-xl border w-full text-left
+                          ${selectedParticipants.includes(participant.userId)
+                            ? "bg-purple-500/10 border-purple-500/20"
+                            : "bg-black/30 border-gray-800/50"}
+                        `}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className={`
+                            border-2
+                            ${selectedParticipants.includes(participant.userId)
+                              ? "border-purple-500/20"
+                              : "border-transparent"}
+                          `}>
+                            <AvatarImage src={participant.user.imageUrl || undefined} />
+                            <AvatarFallback className={`
+                              ${selectedParticipants.includes(participant.userId)
+                                ? "bg-purple-500/10 text-purple-400"
+                                : "bg-gray-500/10 text-gray-400"}
+                            `}>
+                              {participant.user.name.substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-200">{participant.user.name}</p>
+                            {selectedParticipants.includes(participant.userId) && (
+                              <Badge 
+                                variant="outline"
+                                className="mt-1 border-purple-500/20 text-purple-400"
+                              >
+                                Selected
+                              </Badge>
+                            )}
+                          </div>
+                          {selectedParticipants.includes(participant.userId) && (
+                            <Check className="w-5 h-5 text-purple-400" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                </div>
+                
+                <div className="flex items-center gap-4">
                   <Button
                     onClick={submitVotes}
                     disabled={submitting || selectedParticipants.length === 0}
-                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-[0_4px_10px_rgba(124,58,237,0.3)]"
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-[0_4px_10px_rgba(124,58,237,0.3)] transition-all duration-300 h-12"
                   >
                     {submitting ? "Submitting..." : "Submit Votes"}
                   </Button>
+                  <Button
+                    onClick={skipVoting}
+                    disabled={submitting}
+                    variant="outline"
+                    className="flex-1 border-gray-800/50 bg-black/30 hover:bg-red-900/20 hover:border-red-500/20 hover:text-red-400 transition-all duration-300 h-12"
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    Skip Voting
+                  </Button>
                 </div>
-              </CardFooter>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      <p className="text-gray-400 mt-2">
-        Don&apos;t see someone you want to vote for? They haven&apos;t joined the game yet.
-      </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 } 
