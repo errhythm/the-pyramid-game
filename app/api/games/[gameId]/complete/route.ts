@@ -74,28 +74,55 @@ export async function POST(
     // Calculate ranks based on relative vote distribution
     const maxVotes = Math.max(...participants.map(p => p.voteCount));
 
-    // Assign ranks
+    // First pass: Assign initial ranks
+    const initialRanks: { participantId: string; rank: Rank }[] = [];
+    
     for (const participant of participants) {
       let rank: Rank = "F";
 
-      // If participant has votes, calculate their rank based on percentage of max votes
       if (participant.voteCount > 0) {
         const votePercentage = (participant.voteCount / maxVotes) * 100;
         
-        if (votePercentage >= 80) {
+        if (votePercentage >= 67) {
           rank = "A";
-        } else if (votePercentage >= 60) {
+        } else if (votePercentage >= 33) {
           rank = "B";
-        } else if (votePercentage >= 40) {
+        } else if (votePercentage >= 24) {
           rank = "C";
-        } else {
+        } else if (votePercentage > 0) {
           rank = "D";
         }
       }
-      // If participant has no votes, they get F regardless of their voting status
 
+      initialRanks.push({ participantId: participant.id, rank });
+    }
+
+    // Second pass: Promote ranks if there are gaps
+    const rankOrder: Rank[] = ["A", "B", "C", "D", "F"];
+    const ranksPresent = new Set(initialRanks.map(p => p.rank));
+    
+    const finalRanks = initialRanks.map(({ participantId, rank }) => {
+      if (rank === "F") return { participantId, rank }; // Don't promote F ranks
+      
+      // Find current rank index
+      let currentRankIndex = rankOrder.indexOf(rank);
+      
+      // Look for empty ranks above current rank
+      for (let i = 0; i < currentRankIndex; i++) {
+        if (!ranksPresent.has(rankOrder[i])) {
+          // Found an empty rank, promote to the next available higher rank
+          currentRankIndex = i;
+          break;
+        }
+      }
+      
+      return { participantId, rank: rankOrder[currentRankIndex] };
+    });
+
+    // Update participants with final ranks
+    for (const { participantId, rank } of finalRanks) {
       await prisma.participant.update({
-        where: { id: participant.id },
+        where: { id: participantId },
         data: { rank },
       });
     }
